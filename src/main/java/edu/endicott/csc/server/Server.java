@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import edu.endicott.csc.finalproject.GameInfo;
+import edu.endicott.csc.finalproject.GameList;
 import java.net.*;
 import java.io.*;
 import java.util.logging.Level;
@@ -35,6 +36,10 @@ public class Server
         try
         {
             server = new ServerSocket(port);
+            
+            // Check if changes have been made to the steam database
+            checkSteamAPI();
+            
             System.out.println("Server started");
  
             System.out.println("Waiting for a client ...");
@@ -49,7 +54,7 @@ public class Server
             this.out = new DataOutputStream(this.socket.getOutputStream());
  
             String line = "";
- 
+            
             // reads message from client until "Over" is sent
             while (!line.equals("Over"))
             {
@@ -81,7 +86,7 @@ public class Server
         }
     }
  
-    public GameInfo getGameDataFromAPI(String appid) {
+    private GameInfo getGameDataFromAPI(String appid) {
         Gson gson = new Gson();
         GameInfo tmpGameEntry = null;
         
@@ -99,6 +104,37 @@ public class Server
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
         return tmpGameEntry;
+    }
+    
+    private void checkSteamAPI() {
+        Gson gson = new Gson();
+        GameList steamGameList = null;
+        
+        try {
+            // First, we get the list of games from the Steam API
+            URL steamGameURL = new URL("http://api.steampowered.com/ISteamApps/GetAppList/v0002/?key=STEAMKEY&format=json");
+            HttpURLConnection connectListdata = (HttpURLConnection) steamGameURL.openConnection();
+            BufferedReader readerListdata = new BufferedReader(new InputStreamReader(connectListdata.getInputStream()));
+            
+            JsonObject gameListJson = JsonParser.parseReader(readerListdata).getAsJsonObject();
+        
+            steamGameList = gson.fromJson(gameListJson, GameList.class);
+   
+            
+            // Then, we check if we have that list already
+            File steamGamesList = new File("allGamesFile.json");
+            if(!steamGamesList.exists()) {
+                FileWriter writer = new FileWriter(steamGamesList.getName());
+                writer.write(gson.toJson(gameListJson));
+            }
+            else {
+                
+            }
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public static void main(String args[])
