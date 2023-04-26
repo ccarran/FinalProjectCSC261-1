@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import edu.endicott.csc.finalproject.GameInfo;
 import edu.endicott.csc.finalproject.GameList;
+import edu.endicott.csc.finalproject.User;
 import java.net.*;
 import java.io.*;
 import java.util.logging.Level;
@@ -31,8 +32,15 @@ public class Server
     private DataOutputStream out        = null;
     private GameInfo appDetails;
     
+    private User currentUser;
+    private Gson gson = new Gson();
+    
+    private String username;
+    
     public Server(int port)
-    {
+    {   
+        this.checkSteamAPI();
+        
         try
         {
             server = new ServerSocket(port);
@@ -85,9 +93,9 @@ public class Server
             System.out.println(i);
         }
     }
- 
+
+    // This gets the game info from the INFO API
     private GameInfo getGameDataFromAPI(String appid) {
-        Gson gson = new Gson();
         GameInfo tmpGameEntry = null;
         
         try {
@@ -97,7 +105,7 @@ public class Server
             
             JsonObject gamedataJson = JsonParser.parseReader(readerGamedata).getAsJsonObject().getAsJsonObject(appid);
         
-            tmpGameEntry = gson.fromJson(gamedataJson, GameInfo.class);
+            tmpGameEntry = this.gson.fromJson(gamedataJson, GameInfo.class);
         } catch (MalformedURLException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -106,29 +114,122 @@ public class Server
         return tmpGameEntry;
     }
     
+    private void addGameToUser(String gameid) {
+        try {
+            this.currentUser.updateGameEntry(gameid, 0);
+            
+            File gamelistFile = new File("data/gamelist", "allGames.json");
+            JsonObject listJson = JsonParser.parseReader(new FileReader(gamelistFile)).getAsJsonObject();
+            
+            GameList gamelist = this.gson.fromJson(listJson, GameList.class);
+                        
+            for(int i = 0; i < gamelist.applist.apps.size(); i++) {
+                if(gamelist.applist.apps.get(i).appid.equals(gameid)) {
+                    gamelist.applist.apps.get(i).userNumber += 1;
+                    break;
+                }
+            }
+            
+            FileWriter file = new FileWriter("data/gamelist/allGames.json");
+            file.write(gson.toJson(gamelist, GameList.class));
+            file.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }   
+    }
+    
+    private void updateUserGameScore(String gameid, int score) {
+        this.currentUser.updateGameEntry(gameid, score);
+        
+        try {            
+            File gamelistFile = new File("data/gamelist", "allGames.json");
+            JsonObject listJson = JsonParser.parseReader(new FileReader(gamelistFile)).getAsJsonObject();
+            
+            GameList gamelist = this.gson.fromJson(listJson, GameList.class);
+            
+            for(int i = 0; i < gamelist.applist.apps.size(); i++) {
+                if(gamelist.applist.apps.get(i).appid.equals(gameid)) {
+                    int currentGameScore = gamelist.applist.apps.get(i).rating *
+                            gamelist.applist.apps.get(i).userNumber;
+                    
+                    gamelist.applist.apps.get(i).rating = currentGameScore + 
+                            score / gamelist.applist.apps.get(i).userNumber;
+                    break;
+                }
+            }
+            
+            FileWriter file = new FileWriter("data/gamelist/allGames.json");
+            file.write(gson.toJson(gamelist, GameList.class));
+            file.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        } 
+    }
+    
+    private void loadUserInfo() {        
+        File dir = new File("data/users");
+        dir.mkdirs();
+        File userInfo = new File(dir, this.username + ".json");
+        if (userInfo.exists()) {
+            try {
+                JsonObject userJson = JsonParser.parseReader(new FileReader(userInfo)).getAsJsonObject();
+                
+                currentUser = this.gson.fromJson(userJson, User.class);
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else {
+            try {
+                userInfo.createNewFile();
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    private void storeUserInfo() {
+        try {
+            FileWriter file = new FileWriter("data/users/" + username + ".json");
+            file.write(gson.toJson(this.currentUser, User.class));
+            file.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+    }
+    
+    // This gets the game list from the LIST API
     private void checkSteamAPI() {
-        Gson gson = new Gson();
         GameList steamGameList = null;
         
         try {
-            // First, we get the list of games from the Steam API
-            URL steamGameURL = new URL("http://api.steampowered.com/ISteamApps/GetAppList/v0002/?key=STEAMKEY&format=json");
-            HttpURLConnection connectListdata = (HttpURLConnection) steamGameURL.openConnection();
-            BufferedReader readerListdata = new BufferedReader(new InputStreamReader(connectListdata.getInputStream()));
-            
-            JsonObject gameListJson = JsonParser.parseReader(readerListdata).getAsJsonObject();
-        
-            steamGameList = gson.fromJson(gameListJson, GameList.class);
-   
-            
-            // Then, we check if we have that list already
-            File steamGamesList = new File("allGamesFile.json");
+            // First, we check if we have that list already       
+            File dir = new File("data/gamelist");
+            dir.mkdirs();
+            File steamGamesList = new File(dir, "allGames.json");
             if(!steamGamesList.exists()) {
-                FileWriter writer = new FileWriter(steamGamesList.getName());
-                writer.write(gson.toJson(gameListJson));
-            }
-            else {
+                //Then, we get the list of games from the Steam API
+                URL steamGameURL = new URL("http://api.steampowered.com/ISteamApps/GetAppList/v0002/?key=STEAMKEY&format=json");
+                HttpURLConnection connectListdata = (HttpURLConnection) steamGameURL.openConnection();
+                BufferedReader readerListdata = new BufferedReader(new InputStreamReader(connectListdata.getInputStream()));
+
+                //We parse the list into a json
+                JsonObject gameListJson = JsonParser.parseReader(readerListdata).getAsJsonObject();
+
+                steamGameList = this.gson.fromJson(gameListJson, GameList.class);
+   
+                steamGameList.applist.apps.sort((o1, o2) -> o1.name.compareTo(
+                        o2.name));
                 
+                // Finally, we write to the file
+                FileWriter writer = new FileWriter("data/gamelist/allGamesFile.json");
+                writer.write(this.gson.toJson(steamGameList));
+                writer.close();
             }
         } catch (MalformedURLException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
@@ -137,8 +238,23 @@ public class Server
         }
     }
     
+    private void setUsername(String username) {
+        this.username = username;
+    }
+    
+    // TBD: FINISH THE USE STATEMENT    
     public static void main(String args[])
     {
+        if (args.length == 0) {
+            System.out.println("Correct Use:");
+        }
+        for(String s:args){
+            if (s.equals("--help")){
+                System.out.println("Correct Use:");
+                break;
+            }
+        }
+        
         Server server = new Server(5000);
     }
 }
