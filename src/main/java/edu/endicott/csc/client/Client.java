@@ -13,16 +13,19 @@ package edu.endicott.csc.client;
 
 import java.io.*;
 import java.net.*;
+import com.google.gson.Gson;
+import java.util.ArrayList;
  
 //Based on code from: https://www.geeksforgeeks.org/socket-programming-in-java/
 public class Client {
+    private static Client client;
+    
     private Socket socket           = null;
     private DataInputStream input   = null;
     private DataInputStream in      = null;
     private DataOutputStream out    = null;
  
-    public Client(String address, int port)
-    {
+    private Client(String address, int port) {   
         // establish a connection
         try {
             this.socket = new Socket(address, port);
@@ -40,29 +43,52 @@ public class Client {
         }
         catch (UnknownHostException u) {
             System.out.println(u);
-            return;
         }
         catch (IOException i) {
             System.out.println(i);
-            return;
         }
- 
+    }
+    
+    public String requestInfo(String request) {
         // string to read message from input
         String line = "";
  
-        // keep reading until "Over" is input
-        while (!line.equals("Over")) {
+        try {
+            line = this.input.readLine();
+            this.out.writeUTF(line);
+
+            System.out.println(this.in.readUTF());
+        }
+        catch (IOException i) {
+            System.out.println(i);
+        }
+        
+        return line;
+    }
+    
+    public ArrayList<String> getFirstGames(int n){
+        ArrayList<String> list = new ArrayList<>();
+ 
+        for (int i = 0; i < n; i++){
+            String line = "";
+            
             try {
                 line = this.input.readLine();
                 this.out.writeUTF(line);
-                
+
                 System.out.println(this.in.readUTF());
             }
-            catch (IOException i) {
-                System.out.println(i);
+            catch (IOException ex) {
+                System.out.println(ex);
             }
+
+            list.add(line);
         }
- 
+        
+        return list;
+    }
+    
+    public void closeConnection() {
         // close the connection
         try {
             this.input.close();
@@ -73,7 +99,14 @@ public class Client {
             System.out.println(i);
         }
     }
- 
+    
+    public static Client getClient() {
+        if (client == null){
+            client = new Client("127.0.0.1", 5000);
+        }
+        return client;
+    }
+    
     public static void main(String args[])
     {
         Client client = new Client("127.0.0.1", 5000);

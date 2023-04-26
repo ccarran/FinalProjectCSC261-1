@@ -12,6 +12,9 @@ import java.util.ArrayList;
  * @author cesar
  */
 public class GameInfo {
+//    This classes uses snake_cases instead of camelCases because the response
+//    from the API uses them
+    
     public class GameEntry {
         public class Genre {
             public String id;

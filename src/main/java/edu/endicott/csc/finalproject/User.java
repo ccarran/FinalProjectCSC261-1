@@ -6,6 +6,7 @@
 package edu.endicott.csc.finalproject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  *
@@ -13,15 +14,13 @@ import java.util.ArrayList;
  */
 public class User {
     public String password;
-    public ArrayList<String> gameids;
+    public HashMap<String, Integer> gamelist = new HashMap<>();
     
-    public User(String newPassword, ArrayList<String> gameList) {
+    public User(String newPassword) {
         this.password = newPassword;
-        if (gameList == null) {
-            this.gameids = new ArrayList<>();
-        }
-        else {
-            this.gameids = gameList;
-        }
+    }
+    
+    public void updateGameEntry(String gameId, int score) {
+        this.gamelist.put(gameId, score);
     }
 }

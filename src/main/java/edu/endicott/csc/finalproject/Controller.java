@@ -5,7 +5,13 @@
  */
 package edu.endicott.csc.finalproject;
 
-import edu.endicott.csc.JFrames.*;
+import edu.endicott.csc.jframes.EntryWindow;
+import edu.endicott.csc.jframes.WelcomeWindow;
+import edu.endicott.csc.jframes.LoginWindow;
+import edu.endicott.csc.jframes.MainWindow;
+import edu.endicott.csc.jframes.Window;
+import edu.endicott.csc.jframes.SearchWindow;
+import edu.endicott.csc.jframes.CreateWindow;
 import com.google.gson.Gson;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -54,7 +60,7 @@ public class Controller {
     }
     
     public void addUserGameEntry(String newId) {
-        this.user.gameids.add(newId);
+        this.user.updateGameEntry(newId, 0);
         
         final Gson gson = new Gson();
         final String newSave = gson.toJson(user);
@@ -70,7 +76,7 @@ public class Controller {
         }
     }
     public void removeUserGameEntry(String id) {
-        this.user.gameids.remove(id);
+        this.user.gamelist.remove(id);
         
         final Gson gson = new Gson();
         final String newSave = gson.toJson(user);
