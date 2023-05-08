@@ -22,6 +22,10 @@ public class SliderDisplay extends javax.swing.JPanel {
         initComponents();
     }
 
+    /**
+     *
+     * @param title
+     */
     public void setTitle(String title) {
         lblTitle.setText(title);
     }
