@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import okhttp3.OkHttpClient;
 
 /**
  *
@@ -35,11 +36,15 @@ public class Controller {
     public static final int ENTRY_WINDOW = 4;
     public static final int SEARCH_WINDOW = 5;
     
+    public final OkHttpClient httpClient = new OkHttpClient();
+    
     public ArrayList<Window> windows = new ArrayList<>();
     public int currentWindow = 0;
+    public ArrayList<GameList.AppList.Game> searchResults;
     
     public String username;
     public String currentGameID;
+    public GameInfo currentGameInfo;
     public User user;
     
     private Controller() {
@@ -51,6 +56,10 @@ public class Controller {
         windows.add(new SearchWindow());
     }
     
+    /**
+     *
+     * @return
+     */
     public static Controller getController() {
         if (Controller.instance == null) {
             instance = new Controller();
@@ -59,39 +68,10 @@ public class Controller {
         return instance;
     }
     
-    public void addUserGameEntry(String newId) {
-        this.user.updateGameEntry(newId, 0);
-        
-        final Gson gson = new Gson();
-        final String newSave = gson.toJson(user);
-        
-        try {
-            File saveFile = new File(this.username + ".json");
-            FileWriter fileWriter = new FileWriter(saveFile); 
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.write(newSave);
-            bufferedWriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    public void removeUserGameEntry(String id) {
-        this.user.gamelist.remove(id);
-        
-        final Gson gson = new Gson();
-        final String newSave = gson.toJson(user);
-        
-        try {
-            File saveFile = new File(this.username + ".json");
-            FileWriter fileWriter = new FileWriter(saveFile); 
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.write(newSave);
-            bufferedWriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
+    /**
+     *
+     * @param args
+     */
     public static void main(String args[])
     {
         /* Set the Nimbus look and feel */        

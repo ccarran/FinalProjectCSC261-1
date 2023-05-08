@@ -32,6 +32,7 @@ public class GameInfo {
     
         public String type;
         public String name;
+        public String steam_appid;
         public ArrayList<Genre> genres;
         public String short_description;
         public ReleaseDate release_date;

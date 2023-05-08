@@ -13,6 +13,7 @@ import java.util.HashMap;
  * @author cesar
  */
 public class User {
+    public String username;
     public String password;
     public HashMap<String, Integer> gamelist = new HashMap<>();
     
